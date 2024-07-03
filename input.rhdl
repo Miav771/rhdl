@@ -1,0 +1,22 @@
+chip ExampleChip (a<6>, b<6>) -> (out) {
+    silly_and = [a[0..2], b[1], 011] and b; //bitwise and on 6-bit buses
+    somevar = if &(a == b) { a[2] xor a[0] } else { b[1] }; //if else assignment, must have same type
+    out = xor [silly_and, somevar]; //xor reduce all bits
+}
+
+chip ComplexChip(large_bus<10>) -> (out, last_two<2>) {
+    intermediate_result = ExampleChip(a[0]=large_bus[8], a[1..6] = large_bus[3..8], b=large_bus[4..10]);
+    final_result = if large_bus[9] {
+        intermediate_result
+    } else {
+        chungus
+    };
+    chungus <= final_result;
+    out=final_result;
+    last_two = large_bus[8..10] and large_bus[6..8];
+}
+
+chip Top(in<10>) -> (out) {
+    intermediate_out, last_two = ComplexChip(large_bus=in);
+    out = intermediate_out and (|last_two); //and followed by or reduction
+}

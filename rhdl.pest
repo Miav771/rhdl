@@ -1,0 +1,32 @@
+COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* }
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+integer    = @{
+    "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+}
+bits       = @{ ASCII_BIN_DIGIT+ }
+
+range = { "[" ~ integer? ~ ".." ~ integer? ~ "]" }
+index = { "[" ~ integer ~ "]" }
+bus   = { identifier ~ (range | index)? }
+array = { "[" ~ (bus | bits) ~ ("," ~ (bus | bits))* ~ "]" }
+
+width  = { "<" ~ integer ~ ">" }
+input  = { identifier ~ width? }
+output = { identifier ~ width? }
+
+expression  = { operator? ~ operand ~ (operator ~ operand)* }
+operator    = { "and" | "or" | "xor" | "not" | "nand" | "nor" | "xnor" | "&" | "|" | "^" | "!&" | "!|" | "!^" | "==" | "!=" | "!" }
+operand     = { conditional | "(" ~ expression ~ ")" | array | chip_instantiation | bus | bits }
+conditional = { "if" ~ expression ~ "{" ~ expression ~ "}" ~ ("else if" ~ "{" ~ expression ~ "}")* ~ "else" ~ "{" ~ expression ~ "}" }
+
+sequential_assignment    = { "<=" }
+combinational_assignment = { "=" }
+assignment               = { bus ~ (sequential_assignment | combinational_assignment) ~ expression }
+tuple_deconstruction     = { bus ~ ("," ~ bus)+ ~ (sequential_assignment | combinational_assignment) ~ chip_instantiation }
+
+chip_declaration   =  {
+    "chip" ~ identifier ~ "(" ~ input ~ ("," ~ input)* ~ ")" ~ "->" ~ "(" ~ output ~ ("," ~ output)* ~ ")" ~ "{" ~ ((assignment | tuple_deconstruction) ~ ";")* ~ "}"
+}
+chip_instantiation =  { identifier ~ "(" ~ assignment ~ ("," ~ assignment)* ~ ")" }
+program            = _{ SOI ~ chip_declaration* ~ &EOI }
